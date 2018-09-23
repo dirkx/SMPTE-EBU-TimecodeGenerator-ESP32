@@ -30,10 +30,15 @@
 // As the ESP uart insists on a stop-bit - abusing that is not an option either.
 //
 // We cannot use the RMT system 'as is' -- as it takes to long at the end of a
-// 80 bit cycle to re-prime it with the next number not 'loose a beat'.
+// 80 bit cycle to re-prime it with the next number and not 'loose a beat'.
 //
+// We also cannot re-prime it during an interrupt - as that seems to make the
+// Wifi less stable.
+
 // So we use the harware based RMT system in typical, game console, `two buffer',
-// mode with one buffer getting written out; the other being prepared.
+// mode with one buffer getting written out; the other being prepared. And
+// defer the filling to the main loop. And therefore we'll make the buffers
+// fairly big - so a burt of network traffic does not cause issues.
 //
 // Unfortunately - the RMT subsystem gets confused if we do not fill it completely
 // while in looping mode (i.e. padding it after the 80 bits with the typical 'end
@@ -57,12 +62,13 @@
 
 // We try to pick a low dividor; so we can be reasonably accurate; and use
 // a factor of '3' as we're trying to minimise the 1/3 error we have due to
-// our 30 fps/second.
+// our 30 fps/second. And with '3' - we are still (just) below the 15 bit
+// unsigned limit of the tick counts.
 //
 #define DIV 3
 
 // Rather than have the pulses exactly the same; make one of them a triffle
-// longer to stay as close as we can to the 30 fps/2400 baud.
+// longer to stay as close as we can to the 30 fps/2400 baud. 
 //
 unsigned int tocks1, tocks2;
 
@@ -73,7 +79,6 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 static int refill = 0;
 
 void IRAM_ATTR rmt_isr_handler(void *arg) {
-
   // it seems we 'first' need to do this - as otherwise we get a second IRQ right away, I guess
   // at the next 'tick' to remind us of the overflow.
   //
@@ -95,8 +100,8 @@ void rmt_setup(gpio_num_t pin) {
   config.mem_block_num = BLOCK_NUMS;
 
   // 80 bits, 30 frames/second = 2400 bits/second.
-  // 4800 half bits/second.
-  // 80Mhz clock.
+  // 4800 half bits/second; and a 80 Mhz clock.
+  //
   config.clk_div = DIV;
 
   tocks1 = (int) ((double) APB_CLK_FREQ / 4800. / DIV + 0.5);
