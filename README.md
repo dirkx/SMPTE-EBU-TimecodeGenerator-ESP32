@@ -4,9 +4,10 @@ So we have a few  Leitch Illuminated 12 Inch SMPTE Timecode Analog Broadcast Stu
 modern digital, 19" rack sized variant. The each take a typical studio time signal; a SMPTE/EBU style
 'audio' signal (4V p.p., baud, 80 bits, 2400Hz/4800hz FM modulated sequences of 80 bits).
 
-![analog studio clock](/images/analog.jpg) 1[digital studio clock](/images/digital.png)
+![analog studio clock](/images/analog.png) [digital studio clock](/images/digital.jpg)
 
 These are then connected to some ESP32's that pick up the time from the office its NTP
 serves; and provide these to the clocks.
+
 
 
