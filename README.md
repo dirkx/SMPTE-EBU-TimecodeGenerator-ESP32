@@ -1,4 +1,8 @@
+# SMPTE EB linear time cod generator.
+
 ESP32 based SMPTE/EBU timecode generator, with NTP slaving, for Leitch and similar studio/broadcast clocks.
+
+## Background
 
 So we have a few  Leitch Illuminated 12 Inch SMPTE Timecode Analog Broadcast Studio Clocks and its more
 modern digital, 19" rack sized variant. The each take a typical studio time signal; a SMPTE/EBU style
@@ -9,7 +13,7 @@ modern digital, 19" rack sized variant. The each take a typical studio time sign
 These are then connected to some ESP32's that pick up the time from the office its NTP
 serves; and provide these to the clocks.
 
-= Hardware
+## Hardware
 
 On the back of all clocks is a typical red/black two wire spring terminal. This is internally wired to
 a 2x6 IDC connector; pin 1 and 2. It turns out that pin 3 and 4 contain a nice 5V voltage. All in all
@@ -23,3 +27,18 @@ Schematic: https://easyeda.com/dirkx/smpte-esp32-ltc-ntp
 
 ![schematic](https://easyeda.com/normal/document-101346919d96427bb992b8a78cb824f7)
 
+Note that the polarity on the internal IDC connector seem to differ between revisions/versions of the clock (or we were a bit careless putting the wires in) -- hence the diode to protect and top it off a bit.
+
+We've intentionally wired the transistors resistor to the original voltage - to get enough Vpp.
+
+## RMT / pulse trains
+
+Some of the clocks are very sensitive to timing that is lightly off; or when you skip a frame. The angry red error leds starts to flash accusingly for a few seconds then.
+
+So we're using a careful double buffer approach with the hardwar based RTM pulse generator. As the latter will glitch when not fed multiples of 64 pulses we allow for 80 bit SMPTE/EBU frames to cross boundaries. This makes it a tad hard to figure out to 'set' the clock. 
+
+## Caveats
+
+The NTP is terribly primitive and lacks the usual long term phase locked loop that gives it nice, millisecond accuracy even when there are fluctuating network delays. Thus - we're not trying to aim for frame level accuracy.
+
+The code is hardcoded for Europe, CET and its current daylight savings regimen.
