@@ -13,6 +13,8 @@ modern digital, 19" rack sized variant. The each take a typical studio time sign
 These are then connected to some ESP32's that pick up the time from the office its NTP
 serves; and provide these to the clocks.
 
+It runs a small website to allow for a fiddle factor. E.g. to make sure people make their train.
+
 ## Hardware
 
 On the back of all clocks is a typical red/black two wire spring terminal. This is internally wired to
@@ -39,6 +41,8 @@ So we're using a careful double buffer approach with the hardwar based RTM pulse
 
 ## Caveats
 
-The NTP is terribly primitive and lacks the usual long term phase locked loop that gives it nice, millisecond accuracy even when there are fluctuating network delays. Thus - we're not trying to aim for frame level accuracy.
+The NTP is terribly primitive and lacks the usual long term phase locked loop that gives it nice, millisecond accuracy even when there are fluctuating network delays. Thus - we're not trying to aim for frame level accuracy. If that is of interest to you - the magic term is 'NTP clock discipline' and https://www.eecis.udel.edu/~mills/ntp/html/discipline.html is a good primer.
 
-The code is hardcoded for Europe, CET and its current daylight savings regimen.
+Also - the code is hardcoded for Europe, CET and its current daylight savings regimen.
+
+
