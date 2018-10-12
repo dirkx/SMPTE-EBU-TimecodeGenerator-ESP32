@@ -18,9 +18,23 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-#define VERSION "2.01c"
+#define VERSION "2.02"
 
-#include "/Users/dirkx/.passwd.h"
+// #define WIFI_NETWORK "my network name"
+// #define WIFI_PASSWD  "my password"
+// #define NTP_SERVER "0.countryname.pool.ntp.org"
+
+#ifndef WIFI_NETWORK
+#error Uncomment the WIFI_NETWORK define and fill our the right value.
+#endif
+#ifndef WIFI_PASSWD
+#error Uncomment the WIFI_PASSWD define and fill our the right value.
+#endif
+
+#ifndef NTP_SERVER
+#define NTP_SERVER "time.nist.gov"
+#warning "Using the USA based NIST timeserver - you propably do not want that."
+#endif
 
 // The 'red' pin is wired through a 2k2 resistor to the base of an NPN
 // transistor. The latter its C is pulled up by a 1k resistor to the 5V taken
@@ -50,6 +64,7 @@ void setup() {
   Serial.println(__DATE__ " " __TIME__);
 
   pinMode(SENSE_PIN, INPUT_PULLUP);
+
   if (digitalRead(SENSE_PIN))
     name = "smpte-digital-clock";
   else

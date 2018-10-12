@@ -22,7 +22,7 @@
 WiFiUDP udp;
 
 unsigned int localPort = 8888;       // local port to listen for UDP packets
-const char timeServer[] = "10.11.0.2"; // time.nist.gov NTP server
+const char timeServer[] = NTP_SERVER;
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
 
@@ -151,4 +151,8 @@ void ntp_loop() {
   // into the RMT buffer at this point anyway.
   //
   setTS(hour, min, sec);
+  static bool running = false;
+  if (!running)
+    rmt_start();
+  running = true;
 }

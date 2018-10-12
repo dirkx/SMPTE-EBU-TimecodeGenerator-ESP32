@@ -19,8 +19,6 @@
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
 
-#include "/Users/dirkx/.passwd.h"
-
 void ota_setup() {
   // Port defaults to 3232
   // ArduinoOTA.setPort(3232);
