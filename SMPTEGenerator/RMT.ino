@@ -124,11 +124,13 @@ void rmt_setup(gpio_num_t pin) {
 
   ESP_ERROR_CHECK(rmt_set_source_clk(RMT_TX_CHANNEL, RMT_BASECLK_APB)); // 80 Mhz.
   ESP_ERROR_CHECK(rmt_isr_register(rmt_isr_handler, NULL, ESP_INTR_FLAG_LEVEL1, 0));
-
-  fill();
-  fill();
-
   ESP_ERROR_CHECK(rmt_set_tx_thr_intr_en(RMT_TX_CHANNEL, true, RMT_MEM_ITEM_NUM * HALF_BLOCK_NUMS));
+}
+
+void rmt_start()
+{
+  fill();
+  fill();
   ESP_ERROR_CHECK(rmt_tx_start(RMT_TX_CHANNEL, true));
 }
 
@@ -140,16 +142,25 @@ void fill() {
   static unsigned char ltc[10];
   static unsigned char level = 0;
 
+  
   for (int ai = 0; ai < HALF_BLOCK_NUMS * RMT_MEM_ITEM_NUM; ai++)  {
+    unsigned int tocks1n = tocks1;
     rmt_item32_t w = {{{ tocks1, 1, tocks2, 0 }}};
+
+    // Experimental - but we seem to skip exactly one tick at the loop
+    // repeat. Not sure on which side. Assuming at the start for now.
+    //
+    if (ai == 0 && at ==0)
+      tocks1n--;
 
     if (bi == 0)
       fillNextBlock(ltc);
 
+      
     if ((1 & ((ltc[ bi >> 3 ]) >> (bi & 7)))) {
-      w =   {{{ tocks1, level, tocks2, !level }}}; // 1 - fast swap
+      w =   {{{ tocks1n, level, tocks2, !level }}}; // 1 - fast swap
     } else {
-      w =   {{{ tocks1, level, tocks2, level }}}; // 0 - no swap.
+      w =   {{{ tocks1n, level, tocks2, level }}}; // 0 - no swap.
       level = !level;
     };
 
