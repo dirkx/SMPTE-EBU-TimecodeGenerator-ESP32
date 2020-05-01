@@ -30,11 +30,11 @@ unsigned char   user[8] = {
   0,
 };
 
-void incsmpte();
+void incsmpte(int fps);
 
-void fillNextBlock(unsigned char block[10])
+void fillNextBlock(unsigned char block[10], int fps)
 {
-  incsmpte();
+  incsmpte(fps);
 
   block[0] = (user[0] << 4) | (frame & 0xf);
   block[1] = (user[1] << 4) | (frame >> 4) | 0 /* drop frame */ | 0 /* color */;
@@ -60,12 +60,14 @@ void fillNextBlock(unsigned char block[10])
 
 }
 
-void incsmpte()
+void incsmpte(int fps)
 {  
+  int hexfps = ((fps/10)<<4) + (fps % 10); // 23 -> 0x23
+
   frame++;
   if ((frame & 0x0f) > 9)
     frame += 6;
-  if (frame < 0x30)
+  if (frame < hexfps)
     return;
   frame = 0;
   

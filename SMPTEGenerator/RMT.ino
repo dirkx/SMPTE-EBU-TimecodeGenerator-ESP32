@@ -62,7 +62,7 @@ extern void fill();
 #define BLOCK_NUMS (HALF_BLOCK_NUMS * 2)
 #define RUNLEN (80)
 
-#define FPS (30)
+#define FPS (25)
 
 // We try to pick a low dividor; so we can be reasonably accurate; and use
 // a factor of '3' as we're trying to minimise the 1/3 error we have due to
@@ -110,7 +110,8 @@ void rmt_setup(gpio_num_t pin) {
 
   tocks1 = (int) ((double) APB_CLK_FREQ / RUNLEN / FPS / 2 / DIV + 0.5);
   tocks2 = (int) (((double) APB_CLK_FREQ / DIV - tocks1 * RUNLEN * FPS) / RUNLEN / FPS  + 0.5);
-  Serial.printf("Tock and rate: %d,%d #-> %.2f bps (%.1f %%)\n",
+  Serial.printf("FPS: %d/second; Tock and rate: %d,%d #-> %.2f bps (%.1f %%)\n",
+                FPS,
                 tocks1, tocks2,
                 (double) APB_CLK_FREQ / DIV / (tocks1 + tocks2),
                 (((double) APB_CLK_FREQ / DIV / (tocks1 + tocks2)) - RUNLEN * FPS) / RUNLEN / FPS * 100
@@ -138,7 +139,7 @@ void rmt_start()
   ESP_ERROR_CHECK(rmt_tx_start(RMT_TX_CHANNEL, true));
 }
 
-extern void fillNextBlock(unsigned char block[10]);
+extern void fillNextBlock(unsigned char block[10], int fps);
 
 void fill() {
   // we are keeping a lot of state - as fill runs will cross 80-bit frame runs.
@@ -158,7 +159,7 @@ void fill() {
       tocks1n--;
 
     if (bi == 0)
-      fillNextBlock(ltc);
+      fillNextBlock(ltc, FPS);
 
 
     if ((1 & ((ltc[ bi >> 3 ]) >> (bi & 7)))) {
