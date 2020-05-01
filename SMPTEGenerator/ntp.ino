@@ -21,6 +21,8 @@
 
 WiFiUDP udp;
 
+extern void setTS(unsigned char _hour, unsigned char _min, unsigned char _sec);
+
 unsigned int localPort = 8888;       // local port to listen for UDP packets
 const char timeServer[] = NTP_SERVER;
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message

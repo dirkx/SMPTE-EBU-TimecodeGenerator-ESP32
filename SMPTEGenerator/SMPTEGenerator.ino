@@ -18,7 +18,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-#define VERSION "2.02"
+#define VERSION "2.03"
 
 // #define WIFI_NETWORK "my network name"
 // #define WIFI_PASSWD  "my password"
@@ -56,6 +56,11 @@ bool tz = 1; // hours CET
 int fiddleSeconds = 0;
 
 unsigned char   frame = 0, secs = 0x10, mins = 0x20, hour = 0x30;
+
+extern void ota_setup();
+extern void web_setup();
+extern void ntp_setup(unsigned int syncEveryMinutes);
+extern void rmt_setup(gpio_num_t pin);
 
 void setup() {
   Serial.begin(115200);
@@ -95,11 +100,15 @@ void setup() {
   ntp_setup(5); // Sync every 5 minutes.
 }
 
+extern void  ota_loop();
+extern void    web_loop();
+extern void    rmt_loop();
+extern void    ntp_loop();
+
+
 void loop() {
   ota_loop();
   web_loop();
   rmt_loop();
   ntp_loop();
 }
-
-

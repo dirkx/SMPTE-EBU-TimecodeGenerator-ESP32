@@ -30,6 +30,8 @@ unsigned char   user[8] = {
   0,
 };
 
+void incsmpte();
+
 void fillNextBlock(unsigned char block[10])
 {
   incsmpte();

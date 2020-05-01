@@ -1,24 +1,26 @@
 /* Copyright (c) 2011, 2018 Dirk-Willem van Gulik, All Rights Reserved.
- *                    dirkx(at)webweaving(dot)org
- *
- * This file is licensed to you under the Apache License, Version 2.0 
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+                      dirkx(at)webweaving(dot)org
+
+   This file is licensed to you under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
 
 #include "driver/rmt.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+
+extern void fill();
 
 // We need a very steady stream of 80 bit frames going to the clocks; at
 // a rate of 2400 bits per second (30 fps x 80 bits).
@@ -57,8 +59,10 @@
 #define RMT_TX_GPIO (GPIO_NUM_5)
 
 #define HALF_BLOCK_NUMS (4)
-#define BLOCK_NUMS (HALF_BLOCK_NUMS * 2)  
+#define BLOCK_NUMS (HALF_BLOCK_NUMS * 2)
 #define RUNLEN (80)
+
+#define FPS (30)
 
 // We try to pick a low dividor; so we can be reasonably accurate; and use
 // a factor of '3' as we're trying to minimise the 1/3 error we have due to
@@ -68,7 +72,7 @@
 #define DIV 3
 
 // Rather than have the pulses exactly the same; make one of them a triffle
-// longer to stay as close as we can to the 30 fps/2400 baud. 
+// longer to stay as close as we can to the 30 fps/2400 baud.
 //
 unsigned int tocks1, tocks2;
 
@@ -104,12 +108,12 @@ void rmt_setup(gpio_num_t pin) {
   //
   config.clk_div = DIV;
 
-  tocks1 = (int) ((double) APB_CLK_FREQ / 4800. / DIV + 0.5);
-  tocks2 = (int) (((double) APB_CLK_FREQ / DIV - tocks1 * 2400.) / 2400.  + 0.5);
+  tocks1 = (int) ((double) APB_CLK_FREQ / RUNLEN / FPS / 2 / DIV + 0.5);
+  tocks2 = (int) (((double) APB_CLK_FREQ / DIV - tocks1 * RUNLEN * FPS) / RUNLEN / FPS  + 0.5);
   Serial.printf("Tock and rate: %d,%d #-> %.2f bps (%.1f %%)\n",
                 tocks1, tocks2,
                 (double) APB_CLK_FREQ / DIV / (tocks1 + tocks2),
-                (((double) APB_CLK_FREQ / DIV / (tocks1 + tocks2)) - 2400.0) / 2400.0 * 100
+                (((double) APB_CLK_FREQ / DIV / (tocks1 + tocks2)) - RUNLEN * FPS) / RUNLEN / FPS * 100
                );
 
   config.tx_config.loop_en = 1;
@@ -134,6 +138,7 @@ void rmt_start()
   ESP_ERROR_CHECK(rmt_tx_start(RMT_TX_CHANNEL, true));
 }
 
+extern void fillNextBlock(unsigned char block[10]);
 
 void fill() {
   // we are keeping a lot of state - as fill runs will cross 80-bit frame runs.
@@ -142,7 +147,6 @@ void fill() {
   static unsigned char ltc[10];
   static unsigned char level = 0;
 
-  
   for (int ai = 0; ai < HALF_BLOCK_NUMS * RMT_MEM_ITEM_NUM; ai++)  {
     unsigned int tocks1n = tocks1;
     rmt_item32_t w = {{{ tocks1, 1, tocks2, 0 }}};
@@ -150,13 +154,13 @@ void fill() {
     // Experimental - but we seem to skip exactly one tick at the loop
     // repeat. Not sure on which side. Assuming at the start for now.
     //
-    if (ai == 0 && at ==0)
+    if (ai == 0 && at == 0)
       tocks1n--;
 
     if (bi == 0)
       fillNextBlock(ltc);
 
-      
+
     if ((1 & ((ltc[ bi >> 3 ]) >> (bi & 7)))) {
       w =   {{{ tocks1n, level, tocks2, !level }}}; // 1 - fast swap
     } else {
@@ -174,8 +178,9 @@ void fill() {
 
   };
 
-  if (at >= BLOCK_NUMS * RMT_MEM_ITEM_NUM)
+  if (at >= BLOCK_NUMS * RMT_MEM_ITEM_NUM) {
     at = 0;
+  };
 }
 
 void rmt_loop() {
