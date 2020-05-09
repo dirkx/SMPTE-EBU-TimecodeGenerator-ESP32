@@ -18,7 +18,9 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-#define VERSION "2.03"
+#define VERSION "2.04"
+
+#define FPS (30)
 
 // #define WIFI_NETWORK "my network name"
 // #define WIFI_PASSWD  "my password"

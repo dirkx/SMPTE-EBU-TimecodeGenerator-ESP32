@@ -64,6 +64,10 @@ extern void fill();
 
 #define FPS (25)
 
+#if ((FPS != 25) && (FPS != 30))
+#error "There be dragons - this was never tested or tried."
+#endif
+
 // We try to pick a low dividor; so we can be reasonably accurate; and use
 // a factor of '3' as we're trying to minimise the 1/3 error we have due to
 // our 30 fps/second. And with '3' - we are still (just) below the 15 bit
