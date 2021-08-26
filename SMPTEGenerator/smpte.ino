@@ -1,20 +1,20 @@
 /* Copyright (c) 2011, 2018 Dirk-Willem van Gulik, All Rights Reserved.
- *                    dirkx(at)webweaving(dot)org
- *
- * This file is licensed to you under the Apache License, Version 2.0 
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+                      dirkx(at)webweaving(dot)org
+
+   This file is licensed to you under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
 
 // hardcoded to 30fps / EBU mode with no time offset or date -- as the
 // latter seemed to confuse some clocks.
@@ -55,14 +55,14 @@ void fillNextBlock(unsigned char block[10], int fps)
   par ^= par >> 2;
   par ^= par >> 1;
 
-  if (par & 1) 
+  if (par & 1)
     block[3] |= 8;
 
 }
 
 void incsmpte(int fps)
-{  
-  int hexfps = ((fps/10)<<4) + (fps % 10); // 23 -> 0x23
+{
+  int hexfps = ((fps / 10) << 4) + (fps % 10); // 23 -> 0x23
 
   frame++;
   if ((frame & 0x0f) > 9)
@@ -70,7 +70,7 @@ void incsmpte(int fps)
   if (frame < hexfps)
     return;
   frame = 0;
-  
+
   secs++;
   if ((secs & 0x0f) > 9)
     secs += 6;
@@ -91,6 +91,10 @@ void incsmpte(int fps)
   if (hour < 0x24)
     return;
   hour = 0;
+  static int days = 0;
+  days++;
+  if (days == 3)
+    ESP.restart();
 }
 
 #define BCD(x) (((int)(x/10)<<4) | (x % 10))

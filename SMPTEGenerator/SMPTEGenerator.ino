@@ -1,24 +1,28 @@
 /* Copyright (c) 2011, 2018 Dirk-Willem van Gulik, All Rights Reserved.
- *                    dirkx(at)webweaving(dot)org
- *
- * This file is licensed to you under the Apache License, Version 2.0 
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+                      dirkx(at)webweaving(dot)org
+
+   This file is licensed to you under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+*/
+#include "/Users/dirkx/.passwd.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-#define VERSION "2.03"
+// v3 better RMT - fix occasional 1ms jitter.
+// v4 reboot every N day to see if this fixes the DHCP lease going AWOL
+// v5 show local time too
+#define VERSION "2.05-2021/08/09"
 
 // #define WIFI_NETWORK "my network name"
 // #define WIFI_PASSWD  "my password"
@@ -101,9 +105,9 @@ void setup() {
 }
 
 extern void  ota_loop();
-extern void    web_loop();
-extern void    rmt_loop();
-extern void    ntp_loop();
+extern void  web_loop();
+extern void  rmt_loop();
+extern void  ntp_loop();
 
 
 void loop() {

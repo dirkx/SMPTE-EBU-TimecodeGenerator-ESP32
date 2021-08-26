@@ -61,13 +61,24 @@ void web_loop(void)
     return;
   } else if (req.startsWith("GET "))
   {
-    client.print(String("<h1>" + String(name) + " :: hardcoded to CET & EBU (30fps) <hr></h1>") +
-                 String("BCD time: ") + String(hour, HEX) + ":" + String(mins, HEX) + ":" + String(secs, HEX) + String("<p>") +
-                 String("Current GMT offset: ") + String(tz) + String(" hour(s)</br>") +
-                 String("Observing Daylight Saving time (summer time): ") + (dst ? String("yes, extra hour") : String("no")) + String("<p>") +
-                 String("<form method=post>Extra adjustment: <input name='fiddle' value='") + String(fiddleSeconds) + String("'> seconds <input type=submit value=OK></form>") +
-                 String("<pre>\n\n\n</pre><hr><font size=-3 color=gray>" VERSION)
-                );
+    // but akward - but we do not want to pull in printf or std++ for just this.
+    client.print(
+      String("<html><title>Clock config ") + String(name) + String("</title></head><body>") +
+      String("<h1>" + String(name) + " :: hardcoded to CET & EBU (30fps) <hr></h1>") +
+      String("NTP time: ") +
+      String(hour < 0x10 ? "0" : "") + String(hour, HEX) + ":" +
+      String(mins < 0x10 ? "0" : "") + String(mins, HEX) + ":" +
+      String(secs < 0x10 ? "0" : "") + String(secs, HEX) + 
+        String(" <i>(with fiddle factor of ") +String(fiddleSeconds)+ String(" already included)</i><br>") +
+      String("Local time: <span id='ts'>here</span><p>") +
+      String("Current GMT offset: ") + String(tz) + String(" hour(s)</br>") +
+      String("Observing Daylight Saving time (summer time): ") + (dst ? String("yes, extra hour") : String("no")) + String("<p>") +
+      String("<form method=post>Extra adjustment: <input name='fiddle' value='") + String(fiddleSeconds) + String("'> seconds <input type=submit value=OK></form>") +
+      String("<br>This is to compensate for the RTM buffer to the clock; and generally -2 seconds for a normal ESP32.</br>") +
+      String("<pre>\n\n\n</pre><hr><font size=-3 color=gray>" VERSION "</font></pre>") +
+      String("<script>document.getElementById('ts').innerHTML= new Date().toLocaleTimeString(); </script>") +
+      String("</body></html>")
+    );
   } else if (req.startsWith("POST "))
   {
     if (!client.find("fiddle=")) {
@@ -89,4 +100,3 @@ void web_loop(void)
     client.print("Confused.");
   }
 }
-
