@@ -23,6 +23,7 @@
 // v4 reboot every N day to see if this fixes the DHCP lease going AWOL
 // v5 show local time too
 #define VERSION "2.05-2021/08/09"
+#define FPS (30)
 
 // #define WIFI_NETWORK "my network name"
 // #define WIFI_PASSWD  "my password"

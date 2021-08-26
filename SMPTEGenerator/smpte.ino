@@ -56,8 +56,7 @@ void fillNextBlock(unsigned char block[10], int fps)
   par ^= par >> 1;
 
   if (par & 1)
-    block[3] |= 8;
-
+    block[ (fps == 30) ? 3 : 7 ] |= 8;
 }
 
 void incsmpte(int fps)
