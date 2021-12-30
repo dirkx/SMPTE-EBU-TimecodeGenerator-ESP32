@@ -15,6 +15,11 @@ serves; and provide these to the clocks.
 
 It runs a small website to allow for a fiddle factor. E.g. to make sure people make their train.
 
+## Timezone suport
+
+Use is made of the Espressif build in time zone support. A more complete list of TZ specifiers
+can be found at https://ftp.fau.de/aminet/util/time/tzinfo.txt and https://gist.github.com/alwynallan/24d96091655391107939
+
 ## Hardware
 
 On the back of all clocks is a typical red/black two wire spring terminal. This is internally wired to
@@ -43,6 +48,5 @@ So we're using a careful double buffer approach with the hardwar based RTM pulse
 
 The NTP is terribly primitive and lacks the usual long term phase locked loop that gives it nice, millisecond accuracy even when there are fluctuating network delays. Thus - we're not trying to aim for frame level accuracy. If that is of interest to you - the magic term is 'NTP clock discipline' and https://www.eecis.udel.edu/~mills/ntp/html/discipline.html is a good primer.
 
-Also - the code is hardcoded for Europe, CET and its current daylight savings regimen.
 
 
