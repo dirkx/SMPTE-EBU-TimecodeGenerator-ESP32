@@ -143,8 +143,6 @@ void rmt_start()
   ESP_ERROR_CHECK(rmt_tx_start(RMT_TX_CHANNEL, true));
 }
 
-extern void fillNextBlock(unsigned char block[10], int fps);
-
 void fill() {
   // we are keeping a lot of state - as fill runs will cross 80-bit frame runs.
   //

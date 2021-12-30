@@ -30,36 +30,7 @@ unsigned char   user[8] = {
   0,
 };
 
-void incsmpte(int fps);
-
-void fillNextBlock(unsigned char block[10], int fps)
-{
-  incsmpte(fps);
-
-  block[0] = (user[0] << 4) | (frame & 0xf);
-  block[1] = (user[1] << 4) | (frame >> 4) | 0 /* drop frame */ | 0 /* color */;
-  block[2] = (user[2] << 4) | (secs & 0xf);
-  block[3] = (user[3] << 4) | (secs >> 4); /* parity bit set at the very end. */
-  block[4] = (user[4] << 4) | (mins & 0xf);
-  block[5] = (user[5] << 4) | (mins >> 4);
-  block[6] = (user[6] << 4) | (hour & 0xf);
-  block[7] = (user[7] << 4) | (hour >> 4);
-  block[8] = 0xfc; // sync/detect/direction bytes
-  block[9] = 0xbf; // sync/detect/direction bytes
-
-  unsigned char   par, i;
-  par = 1; //last two constants
-  for (i = 0; i < 8; i++)
-    par ^= block[i];
-  par ^= par >> 4;
-  par ^= par >> 2;
-  par ^= par >> 1;
-
-  if (par & 1)
-    block[ (fps == 30) ? 3 : 7 ] |= 8;
-}
-
-void incsmpte(int fps)
+static void incsmpte(int fps)
 {
   int hexfps = ((fps / 10) << 4) + (fps % 10); // 23 -> 0x23
 
@@ -94,6 +65,33 @@ void incsmpte(int fps)
   days++;
   if (days == 3)
     ESP.restart();
+}
+
+static void fillNextBlock(unsigned char block[10], int fps)
+{
+  incsmpte(fps);
+
+  block[0] = (user[0] << 4) | (frame & 0xf);
+  block[1] = (user[1] << 4) | (frame >> 4) | 0 /* drop frame */ | 0 /* color */;
+  block[2] = (user[2] << 4) | (secs & 0xf);
+  block[3] = (user[3] << 4) | (secs >> 4); /* parity bit set at the very end. */
+  block[4] = (user[4] << 4) | (mins & 0xf);
+  block[5] = (user[5] << 4) | (mins >> 4);
+  block[6] = (user[6] << 4) | (hour & 0xf);
+  block[7] = (user[7] << 4) | (hour >> 4);
+  block[8] = 0xfc; // sync/detect/direction bytes
+  block[9] = 0xbf; // sync/detect/direction bytes
+
+  unsigned char   par, i;
+  par = 1; //last two constants
+  for (i = 0; i < 8; i++)
+    par ^= block[i];
+  par ^= par >> 4;
+  par ^= par >> 2;
+  par ^= par >> 1;
+
+  if (par & 1)
+    block[ (fps == 30) ? 3 : 7 ] |= 8;
 }
 
 #define BCD(x) (((int)(x/10)<<4) | (x % 10))

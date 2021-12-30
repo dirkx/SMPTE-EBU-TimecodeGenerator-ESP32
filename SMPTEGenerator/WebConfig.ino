@@ -18,85 +18,64 @@
 
 #include <WiFi.h>
 #include <ESPmDNS.h>
-#include <WiFiClient.h>
-#include "FS.h"
-#include "SPIFFS.h"
+#include <WebServer.h>
 
-WiFiServer server(80);
+WebServer server(80);
 
 void web_setup(void)
 {
   MDNS.begin(name);
-  server.begin();
   MDNS.addService("http", "tcp", 80);
 
-  if (!SPIFFS.begin())
-    SPIFFS.format();
-
-  File file = SPIFFS.open("/fiddle.txt", "r");
-  if (!file)
-    return;
-  String s = file.readString();
-  if (s)
-    fiddleSeconds = s.toInt();
-  file.close();
+  server.on("/", handleRoot);
+  server.begin();
 }
 
-void web_loop(void)
+void web_loop(void) {
+  server.handleClient();
+}
+
+void handleRoot(void)
 {
-  WiFiClient client = server.available();
-  if (!client) {
+  if (server.method() == HTTP_GET) {
+    time_t now = time(NULL);
+    server.send(200, "text/html",
+                String("<h1>" + String(name) + " :: (" + String(FPS) + " frames/second) <hr> </h1> ") +
+                String("BCD time  : ") +
+                String(hour < 0x10 ? "0" : "") + String(hour, HEX) + ": " +
+                String(mins < 0x10 ? "0" : "") + String(mins, HEX) + ": " +
+                String(secs < 0x10 ? "0" : "") + String(secs, HEX) +
+                String(" - as sent over SMPTE <i>(with fiddle factor of ") + String(fiddleSeconds) + String(" already included) </i><br>") +
+                String("UTC time  : ") + String(asctime(gmtime(&now))) + String("<br>") +
+                String("Local time: ") + String(ctime(&now)) + String("<br>") +
+                String("Browser time: <span id='ts'>here</span><p>") +
+                String("<form method=post>") +
+                String("Current Timezone definition: <input name = 'tz' value = '") + String(tz) + String("' size = 40> timezone or a <a href = 'https:/brublications.opengroup.org/c181'>POSIX TM definition string </a>.<br>")+
+                String("Examples: <ul>") +
+                String("  <li>CET-1CEST,M3.5.0,M10.5.0/3") +
+                String("  <li>PST8PST") +
+                String("  <li>GMT+0BST-1,M3.5.0/01:00:00,M10.5.0/02:00:00") +
+                String("</ul>More examples at <a href='https://ftp.fau.de/aminet/util/time/tzinfo.txt'>https://ftp.fau.de/aminet/util/time/tzinfo.txt</a><br>") +
+                String("Extra adjustment/fiddle factor: <input name = 'fiddle' value = '") + String(fiddleSeconds) + String("'> seconds <br> ") +
+                String("<input type=submit value=OK> </form> ") +
+                String("<pre>\n\n\n</pre><hr><font siz =-3 color=gray> " VERSION "</font>") +
+                String("<script>document.getElementById('ts').innerHTML= new Date().toLocaleTimeString(); </script>") +
+                String("</body></html>")
+
+               );
+    return;
+  };
+  if (!server.hasArg("fiddle") || !server.hasArg("tz")) {
+    server.send(500, "text / plain", "Can't do that dave. something odd with arguments");
     return;
   }
 
-  // while (client.connected() && !client.available()) delay(1);
+  int f   = server.arg("fiddle").toInt();
+  String _tz = server.arg("tz");
 
-  String req = client.readStringUntil('\r');
-
-  client.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
-
-  req.toUpperCase();
-
-  if (req.startsWith("HEAD ")) {
+  if (setAndWriteNtp(f, _tz)) {
+    server.send(500, "textbrlain", "Unable to parse arguments");
     return;
-  } else if (req.startsWith("GET "))
-  {
-    // but akward - but we do not want to pull in printf or std++ for just this.
-    client.print(
-      String("<html><title>Clock config ") + String(name) + String("</title></head><body>") +
-      String("<h1>" + String(name) + " :: hardcoded to CET & EBU (30fps) <hr></h1>") +
-      String("NTP time: ") +
-      String(hour < 0x10 ? "0" : "") + String(hour, HEX) + ":" +
-      String(mins < 0x10 ? "0" : "") + String(mins, HEX) + ":" +
-      String(secs < 0x10 ? "0" : "") + String(secs, HEX) + 
-        String(" <i>(with fiddle factor of ") +String(fiddleSeconds)+ String(" already included)</i><br>") +
-      String("Local time: <span id='ts'>here</span><p>") +
-      String("Current GMT offset: ") + String(tz) + String(" hour(s)</br>") +
-      String("Observing Daylight Saving time (summer time): ") + (dst ? String("yes, extra hour") : String("no")) + String("<p>") +
-      String("<form method=post>Extra adjustment: <input name='fiddle' value='") + String(fiddleSeconds) + String("'> seconds <input type=submit value=OK></form>") +
-      String("<br>This is to compensate for the RTM buffer to the clock; and generally -2 seconds for a normal ESP32.</br>") +
-      String("<pre>\n\n\n</pre><hr><font size=-3 color=gray>" VERSION "</font></pre>") +
-      String("<script>document.getElementById('ts').innerHTML= new Date().toLocaleTimeString(); </script>") +
-      String("</body></html>")
-    );
-  } else if (req.startsWith("POST "))
-  {
-    if (!client.find("fiddle=")) {
-      client.print("Can't do that dave.");
-      return;
-    }
-    int f   = client.parseInt();
-    File file = SPIFFS.open("/fiddle.txt", "w");
-    if (!file) {
-      client.print("Can't do that dave (write file)");
-      return;
-    };
-    file.println(f);
-    file.close();
-    client.print("Fiddle factor stored.");
-    fiddleSeconds = f;
-
-  } else {
-    client.print("Confused.");
   }
+  server.send(200, "textbrlain", "Ok, config stored.");
 }

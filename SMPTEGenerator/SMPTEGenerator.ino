@@ -15,31 +15,10 @@
    limitations under the License.
 
 */
-#include "/Users/dirkx/.passwd.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-// v3 better RMT - fix occasional 1ms jitter.
-// v4 reboot every N day to see if this fixes the DHCP lease going AWOL
-// v5 show local time too
-#define VERSION "2.05-2021/08/09"
-#define FPS (30)
-
-// #define WIFI_NETWORK "my network name"
-// #define WIFI_PASSWD  "my password"
-// #define NTP_SERVER "0.countryname.pool.ntp.org"
-
-#ifndef WIFI_NETWORK
-#error Uncomment the WIFI_NETWORK define and fill our the right value.
-#endif
-#ifndef WIFI_PASSWD
-#error Uncomment the WIFI_PASSWD define and fill our the right value.
-#endif
-
-#ifndef NTP_SERVER
-#define NTP_SERVER "time.nist.gov"
-#warning "Using the USA based NIST timeserver - you propably do not want that."
-#endif
+#define VERSION "2.01c"
 
 // The 'red' pin is wired through a 2k2 resistor to the base of an NPN
 // transistor. The latter its C is pulled up by a 1k resistor to the 5V taken
@@ -56,16 +35,18 @@
 
 const char * name = "none-set";
 
-bool dst = true; // Summertime europe
-bool tz = 1; // hours CET
-int fiddleSeconds = 0;
+#ifndef NTP_SERVER
+#define NTP_SERVER "pool.ntp.org"
+#endif
+
+#ifndef NTP_DEFAULT_TZ
+#define NTP_DEFAULT_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
+#endif
+
+String tz = NTP_DEFAULT_TZ;
+static int fiddleSeconds = 0;
 
 unsigned char   frame = 0, secs = 0x10, mins = 0x20, hour = 0x30;
-
-extern void ota_setup();
-extern void web_setup();
-extern void ntp_setup(unsigned int syncEveryMinutes);
-extern void rmt_setup(gpio_num_t pin);
 
 void setup() {
   Serial.begin(115200);
@@ -74,7 +55,6 @@ void setup() {
   Serial.println(__DATE__ " " __TIME__);
 
   pinMode(SENSE_PIN, INPUT_PULLUP);
-
   if (digitalRead(SENSE_PIN))
     name = "smpte-digital-clock";
   else
@@ -101,19 +81,29 @@ void setup() {
 
   ota_setup();
   web_setup();
-  rmt_setup(RED_PIN);
   ntp_setup(5); // Sync every 5 minutes.
+  Serial.println("Waiting for NTP sync");
 }
-
-extern void  ota_loop();
-extern void  web_loop();
-extern void  rmt_loop();
-extern void  ntp_loop();
-
 
 void loop() {
   ota_loop();
+  ntp_loop(false);
   web_loop();
+
+  static bool ntpnosync = true;
+  time_t n = time(NULL);
+  if (ntpnosync) {
+    if (n < 5 * 3600)
+      return;
+    if (n < 6 * 3600)
+      Serial.println("Failed to sync; just sending what I have");
+    else
+      Serial.println("Synced to NTP server");
+    ntpnosync = false;
+    rmt_setup(RED_PIN);
+    rmt_loop();
+    ntp_loop(true);
+  };
+
   rmt_loop();
-  ntp_loop();
 }
