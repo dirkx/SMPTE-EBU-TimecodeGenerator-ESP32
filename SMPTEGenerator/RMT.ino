@@ -71,9 +71,14 @@ extern void fill();
 // We try to pick a low dividor; so we can be reasonably accurate; and use
 // a factor of '3' as we're trying to minimise the 1/3 error we have due to
 // our 30 fps/second. And with '3' - we are still (just) below the 15 bit
-// unsigned limit of the tick counts.
+// unsigned limit of the tick counts. 
+// 2022-05-10 - Same for 25 frames - but then we use 2 (thanks Mikem).
 //
-#define DIV 3
+#if (FPS == 25)
+#define DIV (2)
+#else
+#define DIV (3)
+#endif
 
 // Rather than have the pulses exactly the same; make one of them a triffle
 // longer to stay as close as we can to the 30 fps/2400 baud.
