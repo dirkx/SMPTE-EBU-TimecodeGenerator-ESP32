@@ -45,8 +45,8 @@ void ntp_setup(unsigned int syncEveryMinutes) {
 
   File file = SPIFFS.open("/fiddle.txt", "r");
   if (file) {
-    String s = file.readStringUntil('\n');
-    String _tz = file.readStringUntil('\n');
+    String s = file.readStringUntil('\n').trim();
+    String _tz = file.readStringUntil('\n').trim();
     int fs = s.toInt();
     file.close();
     if (_tz.length() && s.length()) {
