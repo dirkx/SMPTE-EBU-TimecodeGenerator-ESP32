@@ -78,4 +78,7 @@ void handleRoot(void)
     return;
   }
   server.send(200, "textbrlain", "Ok, config stored.");
+
+  // force the fiddle setting to be propagated to the clock.
+  ntp_loop(true);
 }

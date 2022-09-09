@@ -18,7 +18,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 
-#define VERSION "2.01c"
+#define VERSION "2.02"
 
 // The 'red' pin is wired through a 2k2 resistor to the base of an NPN
 // transistor. The latter its C is pulled up by a 1k resistor to the 5V taken
@@ -110,9 +110,9 @@ void loop() {
   static bool ntpnosync = true;
   time_t n = time(NULL);
   if (ntpnosync) {
-    if (n < 5 * 3600)
+    if (n < 5 * 3600UL)
       return;
-    if (n < 6 * 3600)
+    if (n < 6 * 3600UL)
       Serial.println("Failed to sync; just sending what I have");
     else
       Serial.println("Synced to NTP server");
