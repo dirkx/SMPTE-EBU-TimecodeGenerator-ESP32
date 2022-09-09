@@ -35,6 +35,9 @@ void ntp_setup(unsigned int syncEveryMinutes) {
   if (syncMinutes == 0)
     syncEveryMinutes = DEFAULT_SYNC_MINS;
 
+  configTzTime(tz.c_str(), NTP_SERVER);
+  setNtp(0, tz);
+
   if (!SPIFFS.begin()) {
     Serial.println("No filesystem found for config; formatting.");
     SPIFFS.format();
@@ -48,17 +51,20 @@ void ntp_setup(unsigned int syncEveryMinutes) {
     file.close();
     if (_tz.length() && s.length()) {
       Serial.printf("Restoring fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
+      configTzTime(_tz.c_str(), NTP_SERVER);
+
       setNtp(fs, _tz);
       return;
     };
   };
-  setNtp(0, tz);
 }
 
 int setNtp(int fs, String _tz) {
   tz = _tz;
   fiddleSeconds = fs;
-  configTzTime(tz.c_str(), NTP_SERVER);
+
+  setenv("TZ", tz.c_str(), 1);
+  tzset();
 
   Serial.printf("Setting fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
   return 0;
