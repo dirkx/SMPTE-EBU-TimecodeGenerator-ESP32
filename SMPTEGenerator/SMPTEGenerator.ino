@@ -43,6 +43,10 @@ const char * name = "none-set";
 #define NTP_DEFAULT_TZ "CET-1CEST,M3.5.0,M10.5.0/3"
 #endif
 
+#ifndef WIFI_RECONNECT_RETRY_TIMEOUT
+#define WIFI_RECONNECT_RETRY_TIMEOUT (60*1000) /* try to reconnect on wifi loss every minute */
+#endif
+
 String tz = NTP_DEFAULT_TZ;
 static int fiddleSeconds = 0;
 
@@ -85,7 +89,20 @@ void setup() {
   Serial.println("Waiting for NTP sync");
 }
 
+void wifi_loop() {
+  static unsigned long last = millis();
+  if (WiFi.status() == WL_CONNECTED)
+    return;
+  if (millis() - last < WIFI_RECONNECT_RETRY_TIMEOUT)
+    return;
+  last = millis();
+  Serial.println("Disconnect detected, Reconnecting to WiFi...");
+  WiFi.disconnect();
+  WiFi.reconnect();
+}
+
 void loop() {
+  wifi_loop();
   ota_loop();
   ntp_loop(false);
   web_loop();
