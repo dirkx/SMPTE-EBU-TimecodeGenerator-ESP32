@@ -71,7 +71,7 @@ extern void fill();
 // We try to pick a low dividor; so we can be reasonably accurate; and use
 // a factor of '3' as we're trying to minimise the 1/3 error we have due to
 // our 30 fps/second. And with '3' - we are still (just) below the 15 bit
-// unsigned limit of the tick counts. 
+// unsigned limit of the tick counts.
 // 2022-05-10 - Same for 25 frames - but then we use 2 (thanks Mikem).
 //
 #if (FPS == 25)
@@ -97,10 +97,17 @@ void IRAM_ATTR rmt_isr_handler(void *arg) {
   //
   RMT.int_clr.ch0_tx_thr_event = 1;
 
-  portENTER_CRITICAL(&mux);
-  refill ++;
-  portEXIT_CRITICAL(&mux);
+  refill ++; // no need for critical section protection with mux is unnecessary (since the ISR can NOT interrupt itself)
 
+
+  // It seems that clearing the interrupt again here prevents
+  // spurious duplicate interrupts, which causes us to emit occasional
+  // broken SMPTE frames which causes
+  // the clock to do its red-light flashing thing.
+  //
+  // https://github.com/dirkx/SMPTE-EBU-TimecodeGenerator-ESP32/issues/8#issue-1230773006
+
+  RMT.int_clr.ch0_tx_thr_event = 1;
 }
 
 void rmt_setup(gpio_num_t pin) {
