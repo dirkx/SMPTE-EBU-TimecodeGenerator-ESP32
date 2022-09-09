@@ -44,18 +44,21 @@ void ntp_setup(unsigned int syncEveryMinutes) {
   };
 
   File file = SPIFFS.open("/fiddle.txt", "r");
-  if (file) {
-    String s = file.readStringUntil('\n').trim();
-    String _tz = file.readStringUntil('\n').trim();
-    int fs = s.toInt();
-    file.close();
-    if (_tz.length() && s.length()) {
-      Serial.printf("Restoring fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
-      configTzTime(_tz.c_str(), NTP_SERVER);
+  if (!file)
+    return;
 
-      setNtp(fs, _tz);
-      return;
-    };
+  String s = file.readStringUntil('\n');
+  String _tz = file.readStringUntil('\n');
+  file.close();
+
+  s.trim();
+  int fs = s.toInt();
+  _tz.trim();
+
+  if (_tz.length() && s.length()) {
+    Serial.printf("Restoring fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
+    configTzTime(_tz.c_str(), NTP_SERVER);
+    setNtp(fs, _tz);
   };
 }
 
