@@ -17,8 +17,9 @@
 */
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#include <lwip/apps/sntp.h>
 
-#define VERSION "2.02"
+#define VERSION "2.03"
 
 // The 'red' pin is wired through a 2k2 resistor to the base of an NPN
 // transistor. The latter its C is pulled up by a 1k resistor to the 5V taken
@@ -48,16 +49,22 @@ const char * name = "none-set";
 #endif
 
 String tz = NTP_DEFAULT_TZ;
-static int fiddleSeconds = 0;
+static float fiddleSeconds = 0.0;
 
 unsigned char   frame = 0, secs = 0x10, mins = 0x20, hour = 0x30;
 
 void setup() {
   Serial.begin(115200);
-  Serial.print("Booting ");
-  Serial.println(__FILE__);
+  Serial.print("\r\n\r\n\nBooting ");
+  const char * fname = __FILE__;
+  char * p = rindex(fname,'/');
+  if (p) fname = p+1;
+  Serial.print(fname);
+  Serial.print(" - ");
   Serial.println(__DATE__ " " __TIME__);
-
+  Serial.print("Version:" );
+  Serial.println(VERSION);
+  
   pinMode(SENSE_PIN, INPUT_PULLUP);
   if (digitalRead(SENSE_PIN))
     name = "smpte-digital-clock";
@@ -74,53 +81,46 @@ void setup() {
   delay(500);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_NETWORK, WIFI_PASSWD);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Connection Failed! Rebooting...");
-    delay(5000);
-    ESP.restart();
-  }
-
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
 
   ota_setup();
   web_setup();
-  ntp_setup(5); // Sync every 5 minutes.
-  Serial.println("Waiting for NTP sync");
+  ntp_setup(15); // Sync every 15 minutes (NTP sync is once an hour in polling mode.
+
+  Serial.println("Waiting for Wifi and NTP sync");
 }
 
 void wifi_loop() {
-  static unsigned long last = millis();
-  if (WiFi.status() == WL_CONNECTED)
+  static bool was_disconnected = true;
+
+  if (WiFi.status() == WL_CONNECTED) {
+    if (was_disconnected) {
+      Serial.print("IP address: ");
+      Serial.println(WiFi.localIP());
+      was_disconnected = false;
+      if (sntp_enabled())
+        sntp_stop();
+      sntp_init();
+    };
     return;
+  };
+  was_disconnected = true;
+
+  static unsigned long last = millis();
   if (millis() - last < WIFI_RECONNECT_RETRY_TIMEOUT)
     return;
+    
   last = millis();
+
   Serial.println("Disconnect detected, Reconnecting to WiFi...");
   WiFi.disconnect();
   WiFi.reconnect();
 }
 
 void loop() {
+  // static unsigned long l = 0; if (millis()-l>1000) { Serial.println("tock"); l= millis(); };
   wifi_loop();
   ota_loop();
-  ntp_loop(false);
   web_loop();
-
-  static bool ntpnosync = true;
-  time_t n = time(NULL);
-  if (ntpnosync) {
-    if (n < 5 * 3600UL)
-      return;
-    if (n < 6 * 3600UL)
-      Serial.println("Failed to sync; just sending what I have");
-    else
-      Serial.println("Synced to NTP server");
-    ntpnosync = false;
-    rmt_setup(RED_PIN);
+  if (ntp_loop())
     rmt_loop();
-    ntp_loop(true);
-  };
-
-  rmt_loop();
 }

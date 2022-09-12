@@ -58,6 +58,7 @@ static void incsmpte(int fps)
   hour++;
   if ((hour & 0x0f) > 9)
     hour += 6;
+
   if (hour < 0x24)
     return;
   hour = 0;
@@ -94,19 +95,19 @@ static void fillNextBlock(unsigned char block[10], int fps)
     block[ (fps == 30) ? 3 : 7 ] |= 8;
 }
 
-#define BCD(x) (((int)(x/10)<<4) | (x % 10))
 
 void setTS(unsigned char _hour, unsigned char _min, unsigned char _sec) {
-  hour = BCD(_hour);
-  secs = BCD(_sec);
-  mins = BCD(_min);
-  Serial.printf("BCD Time %02x:%02x:%02x.%02x\n", hour, mins, secs, frame);
+  setTSF(_hour, _min, _sec, frame);
 };
 
-void _setTS(unsigned char _hour, unsigned char _min, unsigned char _sec, unsigned char _frame) {
+void setTSF(unsigned char _hour, unsigned char _min, unsigned char _sec, unsigned char _frame) {
+#define BCD(x) (((int)(x/10)<<4) | (x % 10))
   hour = BCD(_hour);
   secs = BCD(_sec);
   mins = BCD(_min);
   frame = BCD(_frame);
-  Serial.printf("BCD Time %02x:%02x:%02x.%02x\n", hour, mins, secs, frame);
+  Serial.printf("BCD Time %02x:%02x:%02x.%02x (fill, %.2f seconds ahead, %d frames/second)\n",
+                hour, mins, secs, frame,
+                FIDDLE_BUFFER_DELAY / 2, FPS);
+
 };

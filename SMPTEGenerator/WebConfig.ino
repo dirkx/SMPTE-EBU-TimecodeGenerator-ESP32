@@ -42,15 +42,15 @@ void handleRoot(void)
     server.send(200, "text/html",
                 String("<h1>" + String(name) + " :: (" + String(FPS) + " frames/second) <hr> </h1> ") +
                 String("BCD time  : ") +
-                String(hour < 0x10 ? "0" : "") + String(hour, HEX) + ": " +
-                String(mins < 0x10 ? "0" : "") + String(mins, HEX) + ": " +
+                String(hour < 0x10 ? "0" : "") + String(hour, HEX) + ":" +
+                String(mins < 0x10 ? "0" : "") + String(mins, HEX) + ":" +
                 String(secs < 0x10 ? "0" : "") + String(secs, HEX) +
-                String(" - as sent over SMPTE <i>(with fiddle factor of ") + String(fiddleSeconds) + String(" already included) </i><br>") +
+                String(" - as sent over SMPTE <i>(with fiddle factor of ") + String(fiddleSeconds) + String(" + ") + String(FIDDLE_BUFFER_DELAY)+String(" x 0.5 buffer delay already included) </i><br>") +
                 String("UTC time  : ") + String(asctime(gmtime(&now))) + String("<br>") +
                 String("Local time: ") + String(ctime(&now)) + String("<br>") +
                 String("Browser time: <span id='ts'>here</span><p>") +
                 String("<form method=post>") +
-                String("Current Timezone definition: <input name = 'tz' value = '") + String(tz) + String("' size = 40> timezone or a <a href = 'https:/brublications.opengroup.org/c181'>POSIX TM definition string </a>.<br>")+
+                String("Current Timezone definition: <input name = 'tz' value = '") + String(tz) + String("' size = 40> timezone or a <a href = 'https://ublications.opengroup.org/c181'>POSIX TM definition string </a>.<br>") +
                 String("Examples: <ul>") +
                 String("  <li>CET-1CEST,M3.5.0,M10.5.0/3") +
                 String("  <li>PST8PST") +
@@ -70,7 +70,7 @@ void handleRoot(void)
     return;
   }
 
-  int f   = server.arg("fiddle").toInt();
+  float f  = server.arg("fiddle").toInt();
   String _tz = server.arg("tz");
 
   if (setAndWriteNtp(f, _tz)) {
@@ -78,7 +78,4 @@ void handleRoot(void)
     return;
   }
   server.send(200, "textbrlain", "Ok, config stored.");
-
-  // force the fiddle setting to be propagated to the clock.
-  ntp_loop(true);
 }

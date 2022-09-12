@@ -23,7 +23,7 @@
 #include "SPIFFS.h"
 
 #ifndef DEFAULT_SYNC_MINS
-#define DEFAULT_SYNC_MINS (5)
+#define DEFAULT_SYNC_MINS (15) // NTP sync is hourly or so.
 #endif
 
 static const char timeServer[] = NTP_SERVER; // time.nist.gov NTP server
@@ -52,28 +52,24 @@ void ntp_setup(unsigned int syncEveryMinutes) {
   file.close();
 
   s.trim();
-  int fs = s.toInt();
+  float fs = s.toFloat();
   _tz.trim();
 
   if (_tz.length() && s.length()) {
-    Serial.printf("Restoring fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
-    configTzTime(_tz.c_str(), NTP_SERVER);
     setNtp(fs, _tz);
   };
 }
 
-int setNtp(int fs, String _tz) {
+int setNtp(float fs, String _tz) {
   tz = _tz;
   fiddleSeconds = fs;
 
-  setenv("TZ", tz.c_str(), 1);
-  tzset();
-
-  Serial.printf("Setting fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
+  configTzTime(_tz.c_str(), NTP_SERVER);
+  Serial.printf("Setting fiddle=%.2f+%.2f/2 TZ=<%s>, Server=%s\n", fs, FIDDLE_BUFFER_DELAY, _tz.c_str(), NTP_SERVER);
   return 0;
 }
 
-int setAndWriteNtp(int fs, String _tz) {
+int setAndWriteNtp(float fs, String _tz) {
 
   File file = SPIFFS.open("/fiddle.txt", "w");
   if (!file)
@@ -83,20 +79,54 @@ int setAndWriteNtp(int fs, String _tz) {
   file.println(_tz);
   file.close();
 
-  Serial.printf("Written fiddle=%d TZ=<%s>\n", fs, _tz.c_str());
+  Serial.printf("Written fiddle=%.2f TZ=<%s>\n", fs, _tz.c_str());
   return setNtp(fs, _tz);
 }
 
-void ntp_loop(bool force) {
+bool ntp_loop() {
+  static time_t lastTime = 0;
   static unsigned long lastNtp = 0;
+  static bool needssetup = true;
 
-  if (millis() - lastNtp < syncMinutes * 60 * 1000 && lastNtp && !force)
-    return;
+  if (needssetup) {
+    if (time(NULL) < 6000000)
+      return false;
+  };
 
-  lastNtp = millis();
+  struct timeval tv = { 0, 0};
+  gettimeofday(&tv, NULL);
+  time_t now = tv.tv_sec;
 
-  time_t now = time(NULL) + fiddleSeconds;
+  if (now - lastTime < syncMinutes * 60 && !needssetup)
+    return true;
+  lastTime = now;
+
+  double t = (double)tv.tv_sec + (double)fiddleSeconds + (double)tv.tv_usec / 1.0E6;
+
+  if (needssetup) {
+        Serial.println("Setting BCD for the first time");
+  } else {
+    // the first time - we start running the filled buffer right away.
+    // after that - we always fill it half a buffer 'ahead'. So anything
+    // we put in - gets emitted FIDDLE_BUFFER_DELAY/2 later.
+    //
+    t += FIDDLE_BUFFER_DELAY * 0.5;
+    Serial.println("(re)syncing BCD");
+    Serial.printf("OLD Time %02x:%02x:%02x.%02x (fill, %.2f seconds ahead, %d frames/second)\n",
+                  hour, mins, secs, frame,
+                  FIDDLE_BUFFER_DELAY / 2, FPS);
+  };
+
+  now = (time_t) t;
   struct tm * tms = localtime(&now);
+  // Serial.print(asctime(tms));
 
-  setTS(tms->tm_hour, tms->tm_min, tms->tm_sec);
+  setTSF(tms->tm_hour, tms->tm_min, tms->tm_sec, FPS * (t - int(t)));
+
+  if (needssetup) {
+    needssetup = false;
+    rmt_setup(RED_PIN);
+    rmt_start();
+  };
+  return true;
 }

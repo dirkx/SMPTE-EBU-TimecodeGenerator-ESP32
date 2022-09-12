@@ -40,7 +40,11 @@ extern void fill();
 // So we use the harware based RMT system in typical, game console, `two buffer',
 // mode with one buffer getting written out; the other being prepared. And
 // defer the filling to the main loop. And therefore we'll make the buffers
-// fairly big - so a burt of network traffic does not cause issues.
+// fairly big - so a burst of network traffic does not cause issues.
+//
+// This means we have in our buffer:
+//
+//      BLOCK_NUMS * RMT_MEM_ITEM_NUM / RUNLEN / FPS = 0.256 seconds
 //
 // Unfortunately - the RMT subsystem gets confused if we do not fill it completely
 // while in looping mode (i.e. padding it after the 80 bits with the typical 'end
@@ -63,6 +67,8 @@ extern void fill();
 #define RUNLEN (80)
 
 #define FPS (25)
+
+#define FIDDLE_BUFFER_DELAY ((float)BLOCK_NUMS * RMT_MEM_ITEM_NUM / RUNLEN / FPS)
 
 #if ((FPS != 25) && (FPS != 30))
 #error "There be dragons - this was never tested or tried."
@@ -126,7 +132,7 @@ void rmt_setup(gpio_num_t pin) {
 
   tocks1 = (int) ((double) APB_CLK_FREQ / RUNLEN / FPS / 2 / DIV + 0.5);
   tocks2 = (int) (((double) APB_CLK_FREQ / DIV - tocks1 * RUNLEN * FPS) / RUNLEN / FPS  + 0.5);
-  Serial.printf("FPS: %d/second; Tock and rate: %d,%d #-> %.2f bps (%.1f %%)\n",
+  Serial.printf("FPS: %d/second; Tock and rate: %d,%d #-> %.2f bps (Error %.2f %%)\n",
                 FPS,
                 tocks1, tocks2,
                 (double) APB_CLK_FREQ / DIV / (tocks1 + tocks2),
@@ -146,6 +152,9 @@ void rmt_setup(gpio_num_t pin) {
   ESP_ERROR_CHECK(rmt_set_source_clk(RMT_TX_CHANNEL, RMT_BASECLK_APB)); // 80 Mhz.
   ESP_ERROR_CHECK(rmt_isr_register(rmt_isr_handler, NULL, ESP_INTR_FLAG_LEVEL1, 0));
   ESP_ERROR_CHECK(rmt_set_tx_thr_intr_en(RMT_TX_CHANNEL, true, RMT_MEM_ITEM_NUM * HALF_BLOCK_NUMS));
+
+  ESP_ERROR_CHECK(rmt_tx_start(RMT_TX_CHANNEL, false));
+
 }
 
 void rmt_start()
@@ -153,6 +162,7 @@ void rmt_start()
   fill();
   fill();
   ESP_ERROR_CHECK(rmt_tx_start(RMT_TX_CHANNEL, true));
+  Serial.println("Starting to emit SMPTE stream");
 }
 
 void fill() {
@@ -201,9 +211,10 @@ void fill() {
 void rmt_loop() {
   if (refill) {
     if (refill > 1)
-      Serial.printf("IRQ while filling %d\n", refill);
+      Serial.printf("Second IRQ while filling %d\n", refill);
 
     fill();
+
     portENTER_CRITICAL(&mux);
     refill--;
     portEXIT_CRITICAL(&mux);
