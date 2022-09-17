@@ -36,7 +36,7 @@ to raise the signal a bit.
 
 Schematic: https://easyeda.com/dirkx/smpte-esp32-ltc-ntp
 
-![schematic](https://easyeda.com/normal/document-101346919d96427bb992b8a78cb824f7)
+![schematic](https://easyeda.com/normal/document-101346919d96427bb992b8a78cb824f7?x=spoof)
 
 Note that the polarity on the internal IDC connector seem to differ between revisions/versions of the clock (or we were a bit careless putting the wires in) -- hence the diode to protect and top it off a bit.
 
