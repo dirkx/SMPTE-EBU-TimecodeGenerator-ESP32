@@ -19,7 +19,7 @@
 #include <ESPmDNS.h>
 #include <lwip/apps/sntp.h>
 
-#define VERSION "2.03"
+#define VERSION "2.04"
 
 // The 'red' pin is wired through a 2k2 resistor to the base of an NPN
 // transistor. The latter its C is pulled up by a 1k resistor to the 5V taken

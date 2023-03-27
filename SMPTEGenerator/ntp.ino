@@ -85,7 +85,6 @@ int setAndWriteNtp(float fs, String _tz) {
 
 bool ntp_loop() {
   static time_t lastTime = 0;
-  static unsigned long lastNtp = 0;
   static bool needssetup = true;
 
   if (needssetup) {
